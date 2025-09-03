@@ -890,14 +890,7 @@ class Qwen2_5_VLForConditionalGeneration(nn.Module, SupportsMultiModal,
 
         if multimodal_config.get_limit_per_prompt("image") or \
             multimodal_config.get_limit_per_prompt("video"):
-            self.visual = Qwen2_5_VisionTransformer(
-                config.vision_config,
-                norm_eps=getattr(config, "rms_norm_eps", 1e-6),
-                quant_config=self._maybe_ignore_quant_config(
-                    self.quant_config),
-                prefix=maybe_prefix(prefix, "visual"),
-                use_data_parallel=self.use_data_parallel,
-            )
+            self.visual = self.build_visual(config, self.quant_config, prefix)
         else:
             self.visual = None
 
@@ -909,6 +902,16 @@ class Qwen2_5_VLForConditionalGeneration(nn.Module, SupportsMultiModal,
 
         self.make_empty_intermediate_tensors = (
             self.language_model.make_empty_intermediate_tensors)
+        
+    def build_visual(self, config, quant_config, prefix):
+        return Qwen2_5_VisionTransformer(
+                config.vision_config,
+                norm_eps=getattr(config, "rms_norm_eps", 1e-6),
+                quant_config=self._maybe_ignore_quant_config(
+                    quant_config),
+                prefix=maybe_prefix(prefix, "visual"),
+                use_data_parallel=self.use_data_parallel,
+        )
 
     def _maybe_ignore_quant_config(self, config: Optional[QuantizationConfig]):
         # GPTQ configs do not have a list of ignored modules, however AutoGPTQ
